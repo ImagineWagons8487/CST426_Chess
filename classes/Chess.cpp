@@ -51,6 +51,26 @@ void Chess::setUpBoard()
     startGame();
 }
 
+ChessPiece charToPiece(const char c)
+{
+    switch(c)
+    {
+        case 'p':
+            return Pawn;
+        case 'r':
+            return Rook;
+        case 'n':
+            return Knight;
+        case 'b':
+            return Bishop;
+        case 'q':
+            return Queen;
+        case 'k':
+            return King;
+    }
+    return NoPiece;
+}
+
 void Chess::FENtoBoard(const std::string& fen) {
     // convert a FEN string to a board
     // FEN is a space delimited string with 6 fields
@@ -61,7 +81,36 @@ void Chess::FENtoBoard(const std::string& fen) {
     // 3: castling availability (KQkq or -)
     // 4: en passant target square (in algebraic notation, or -)
     // 5: halfmove clock (number of halfmoves since the last capture or pawn advance)
+
+    // Implementation:
+    // lower case are black pieces, upper case are white pieces, numbers are empty spaces (consider pieces with spaces inbetween)
+    int squareIndex = 0;
+    for(int i=0; i<fen.length(); ++i)
+    {
+        if(fen[i] == '/')
+        {
+            continue;
+        }
+        else if(fen[i]-'0' >= 0 && fen[i]-'0' <= 8 )
+        {
+            // i+=(fen[i]-'0')-1;
+            squareIndex += (fen[i]-'0')-1;
+        }
+        else
+        {
+            int playerNumber = isupper(fen[i]) ? 1 : 0;
+            Bit* bit = PieceForPlayer(playerNumber, charToPiece(tolower(fen[i])));
+            ChessSquare* square = _grid->getSquareByIndex(squareIndex);
+            square->setBit(bit);
+            bit->setPosition(square->getPosition());
+            bit->setParent(square);
+        }
+        ++squareIndex;
+
+    }
+
 }
+
 
 bool Chess::actionForEmptyHolder(BitHolder &holder)
 {

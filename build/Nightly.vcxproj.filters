@@ -1,0 +1,17 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\jacki\OneDrive\Documents\CST426\chess-base\build\CMakeFiles\b3615d768915aec9c010eb23b8aa5fe5\Nightly.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\Users\jacki\OneDrive\Documents\CST426\chess-base\CMakeLists.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="C:\Users\jacki\OneDrive\Documents\CST426\chess-base\build\CMakeFiles\Nightly" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="CMake Rules">
+      <UniqueIdentifier>{AE821E22-FB4F-39F4-AD9E-2180AD3D2BA0}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>
