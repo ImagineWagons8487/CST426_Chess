@@ -69,6 +69,7 @@ namespace ClassGame {
                 } else {
                     ImGui::Text("Current Player Number: %d", game->getCurrentPlayer()->playerNumber());
                     std::string stateString = game->stateString();
+                    // std::reverse(stateString.begin(), stateString.end());
                     int stride = game->_gameOptions.rowX;
                     int height = game->_gameOptions.rowY;
 
