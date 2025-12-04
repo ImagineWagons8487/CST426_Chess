@@ -43,6 +43,7 @@ Chess::Chess()
     materialValsMapping['r'] = -500;
     materialValsMapping['q'] = -900;
     materialValsMapping['k'] = -9000;
+    materialValsMapping['0'] = 0;
 
     // map chars to pieces
     pieceMapping['p'] = Pawn;
@@ -200,6 +201,7 @@ void Chess::bitMovedFromTo(Bit &bit, BitHolder &src, BitHolder& dst)
 {
     // setting currentPlayer to the other player
     _currentPlayer = _currentPlayer == WHITE ? BLACK : WHITE;
+    std::cout << "currentPlayer: " << _currentPlayer << std::endl;
     // moves are set to generateAllmoves
     // generateAllMoves might also set _allMoves to the vector
     _allMoves = generateAllMoves(stateString(), _currentPlayer);
@@ -985,7 +987,7 @@ void Chess::updateAI()
     _countMoves = 0;
 
 
-    int bestVal = -1000;
+    int bestVal = -10000000;
     BitMove* bestMove = nullptr;
     constexpr int negInfinite = -1000000000;
 
@@ -995,17 +997,18 @@ void Chess::updateAI()
 
     // get state string
     std::string state = stateString();
-    auto newMoves = generateAllMoves(state, WHITE);
+    auto newMoves = generateAllMoves(state, BLACK);
+    assert(newMoves.size() > 0);
     for(auto move : newMoves)
     {
         // char boardSave = state[move.to];
         // char pieceMoving = state[move.from];
-        pushMove(move, state, WHITE);
+        pushMove(move, state, BLACK);
 
         // state[move.to] = pieceMoving;
         // state[move.from] = '0';
         _countMoves = 0;
-        int moveVal = negamax(state, 3, WHITE, alpha, beta);
+        int moveVal = negamax(state, 7, BLACK, alpha, beta);
         // state[move.from] = pieceMoving;
         // state[move.to] = boardSave;
         popState();
@@ -1021,6 +1024,12 @@ void Chess::updateAI()
         std::cout << "Moves checked: " << _countMoves
                   << " (" << std::fixed << std::setprecision(2) << boardsPerSecond
                   << " boards/s)" << std::defaultfloat << std::endl;
+    }
+    if(!bestMove)
+    {
+        std::cout << "CHECKMATE\n";
+        endTurn();
+        return; 
     }
     int srcSquare = bestMove->from;
     int dstSquare = bestMove->to;
@@ -1103,10 +1112,10 @@ int Chess::negamax(std::string& state, int depth, int playerColor, int alpha, in
 {
     if(depth == 0) return evaluateBoard(state);
     _countMoves++;
-
+    
     std::vector<BitMove> newMoves = generateAllMoves(state, playerColor);
     int bestVal = -100000000;
-
+    
     for(const auto& move : newMoves)
     {
         // push move
