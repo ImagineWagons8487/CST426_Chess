@@ -2,8 +2,21 @@
 #include <limits>
 #include <cmath>
 #include "MagicBitBoards.h"
+#include <array>
 
 static BitBoardElement _pawnAttacks[2][64];
+
+static const std::array<int *, 128> pieceSquareTables = []() {
+        std::array<int *, 128> pieceSquare{};
+        pieceSquare['P'] = (int *)&pawnTableW;   pieceSquare['p'] = (int *)&pawnTableB;
+        pieceSquare['N'] = (int *)&knightTableW; pieceSquare['n'] = (int *)&knightTableB;
+        pieceSquare['B'] = (int *)&bishopTableW; pieceSquare['b'] = (int *)&bishopTableB;
+        pieceSquare['R'] = (int *)&rookTableW;   pieceSquare['r'] = (int *)&rookTableB;
+        pieceSquare['Q'] = (int *)&queenTableW;  pieceSquare['q'] = (int *)&queenTableB;
+        pieceSquare['K'] = (int *)&kingTableW;   pieceSquare['k'] = (int *)&kingTableB;
+        pieceSquare['0'] = (int *)&emptyTable;
+        return pieceSquare;
+    }();
 
 Chess::Chess()
 {
@@ -106,13 +119,17 @@ void Chess::setUpBoard()
     _gameOptions.rowX = 8;
     _gameOptions.rowY = 8;
 
+    // white on bottom
     _grid->initializeChessSquares(pieceSize, "boardsquare.png");
     FENtoBoard("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR");
+    // black on bottom
+    // _grid->initializeSquares(pieceSize, "boardsquare.png");
+    // FENtoBoard("rnbkqbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBKQBNR");
     
     init(initialStateString().c_str(), WHITE);
     if(gameHasAI())
     {
-        setAIPlayer(AI_PLAYER);
+        setAIPlayer(0);
     }
 
     startGame();
@@ -758,9 +775,14 @@ void Chess::updateAI()
     int beta = 1000000000;
 
     // get state string
-    std::string state = stateString();
+    // std::string state = stateString();
     auto newMoves = generateAllMoves();
     // assert(newMoves.size() > 0);
+    if(newMoves.size() == 0)
+    {
+        std::cout << "CHECKMATE";
+        return;
+    }
     _countMoves = 0;
     for(auto move : newMoves)
     {
@@ -768,9 +790,9 @@ void Chess::updateAI()
         // char pieceMoving = state[move.from];
         pushMove(move);
 
-        // state[move.to] = pieceMoving;
+        // state[move.to] = pieceMcoving;
         // state[move.from] = '0';
-        int moveVal = negamax(state, 4, BLACK, alpha, beta);
+        int moveVal = -negamax(5, color, alpha, beta);
         // state[move.from] = pieceMoving;
         // state[move.to] = boardSave;
         
@@ -826,90 +848,93 @@ int Chess::evaluateBoard(const std::string& state)
     for(int i=0; i<64; ++i)
     {
         value += materialValsMapping[state[i]];
+        value += pieceSquareTables[state[i]][i];
         // i don't like this >:(
-        switch (state[i])
-        {
-            case 'P':
-                value += whitePawnBoard[i]*10;
-                break;
+        // switch (state[i])
+        // {
+        //     case 'P':
+        //         value += whitePawnBoard[i]*10;
+        //         break;
 
-            case 'N':
-                value += whiteKnightBoard[i]*10;
-                break;
+        //     case 'N':
+        //         value += whiteKnightBoard[i]*10;
+        //         break;
 
-            case 'B':
-                value += whiteBishopBoard[i]*10;
-                break;
+        //     case 'B':
+        //         value += whiteBishopBoard[i]*10;
+        //         break;
 
-            case 'R':
-                value += whiteRookBoard[i]*10;
-                break;
+        //     case 'R':
+        //         value += whiteRookBoard[i]*10;
+        //         break;
 
-            case 'Q':
-                value += whiteQueenBoard[i]*10;
-                break;
+        //     case 'Q':
+        //         value += whiteQueenBoard[i]*10;
+        //         break;
 
-            case 'K':
-                value += whiteKingBoard[i]*10;
-                break;
+        //     case 'K':
+        //         value += whiteKingBoard[i]*10;
+        //         break;
 
-            case 'p':
-                value += blackPawnBoard[i]*10;
-                break;
+        //     case 'p':
+        //         value -= blackPawnBoard[i]*10;
+        //         break;
 
-            case 'n':
-                value += blackKnightBoard[i]*10;
-                break;
+        //     case 'n':
+        //         value -= blackKnightBoard[i]*10;
+        //         break;
 
-            case 'b':
-                value += blackBishopBoard[i]*10;
-                break;
+        //     case 'b':
+        //         value -= blackBishopBoard[i]*10;
+        //         break;
 
-            case 'r':
-                value += blackRookBoard[i]*10;
-                break;
+        //     case 'r':
+        //         value -= blackRookBoard[i]*10;
+        //         break;
 
-            case 'q':
-                value += blackQueenBoard[i]*10;
-                break;
+        //     case 'q':
+        //         value -= blackQueenBoard[i]*10;
+        //         break;
 
-            case 'k':
-                value += blackKingBoard[i]*10;
-                break;
-            default:
-                break;
-        }
+        //     case 'k':
+        //         value -= blackKingBoard[i]*10;
+        //         break;
+        //     default:
+        //         break;
+        // }
     }
     // for char in state
         // value += boardValues[char]
-    return value;
+    return value*color;
 }
 
 // playerColor is either 1 or -1
-int Chess::negamax(std::string& state, int depth, int playerColor, int alpha, int beta) 
+int Chess::negamax(int depth, int playerColor, int alpha, int beta) 
 {
     _countMoves++;
-    if(depth == 0) return -evaluateBoard(state);
+    if(depth == 0) return evaluateBoard(state);
     
     std::vector<BitMove> newMoves = generateAllMoves();
-    if(newMoves.size() == 0) return -evaluateBoard(state);
+    // if(newMoves.size() == 0) return evaluateBoard(state);
+    // if newMoves.size == 0, checkmate has happened, return maximum value?
+    if(newMoves.size() == 0) return 100000000*color;
     int bestVal = -100000000;
     
     for(const auto& move : newMoves)
     {
         // push move
         pushMove(move);
-        bestVal = std::max(bestVal, -negamax(state, depth-1, -playerColor, -beta, -alpha));
+        bestVal = std::max(bestVal, -negamax(depth-1, -playerColor, -beta, -alpha));
         // Undo move
-        // popState();
+        popState();
         // alpha beta cut-off
         alpha = std::max(alpha, bestVal);
         if(alpha > beta) 
         {
-            popState();
+            // popState();
             break;
         }
-        popState();
+        // popState();
     }
     // return bestVal code
     return bestVal;
