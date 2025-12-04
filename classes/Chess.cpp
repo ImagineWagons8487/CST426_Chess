@@ -998,7 +998,8 @@ void Chess::updateAI()
     // get state string
     std::string state = stateString();
     auto newMoves = generateAllMoves(state, BLACK);
-    assert(newMoves.size() > 0);
+    // assert(newMoves.size() > 0);
+    _countMoves = 0;
     for(auto move : newMoves)
     {
         // char boardSave = state[move.to];
@@ -1007,16 +1008,20 @@ void Chess::updateAI()
 
         // state[move.to] = pieceMoving;
         // state[move.from] = '0';
-        _countMoves = 0;
-        int moveVal = negamax(state, 7, BLACK, alpha, beta);
+        int moveVal = negamax(state, 3, BLACK, alpha, beta);
         // state[move.from] = pieceMoving;
         // state[move.to] = boardSave;
-        popState();
-
         
-        bestMove = moveVal > bestVal ? &move : bestMove;
-        bestVal = moveVal > bestVal ? moveVal : bestVal;
+        if(moveVal > bestVal)
+        {
+            bestMove = &move;
+            bestVal = moveVal;
+        }
 
+        // bestMove = moveVal > bestVal ? &move : bestMove;
+        // bestVal = moveVal > bestVal ? moveVal : bestVal;
+        
+        popState();
     }
     if(bestVal != negInfinite){
         const double seconds = std::chrono::duration<double>(std::chrono::steady_clock::now() - searchStart).count();
@@ -1024,6 +1029,16 @@ void Chess::updateAI()
         std::cout << "Moves checked: " << _countMoves
                   << " (" << std::fixed << std::setprecision(2) << boardsPerSecond
                   << " boards/s)" << std::defaultfloat << std::endl;
+
+        
+        int srcSquare = bestMove->from;
+        int dstSquare = bestMove->to;
+        BitHolder& src = getHolderAt(srcSquare&7, srcSquare/8);
+        BitHolder& dst = getHolderAt(dstSquare&7, dstSquare/8);
+        Bit* bit = src.bit();
+        dst.dropBitAtPoint(bit, ImVec2(0, 0));
+        src.setBit(nullptr);
+        bitMovedFromTo(*bit, src, dst);
     }
     if(!bestMove)
     {
@@ -1031,15 +1046,7 @@ void Chess::updateAI()
         endTurn();
         return; 
     }
-    int srcSquare = bestMove->from;
-    int dstSquare = bestMove->to;
-    BitHolder& src = getHolderAt(srcSquare&7, srcSquare/8);
-    BitHolder& dst = getHolderAt(dstSquare&7, dstSquare/8);
-    Bit* bit = src.bit();
-    dst.dropBitAtPoint(bit, ImVec2(0, 0));
-    src.setBit(nullptr);
-    bitMovedFromTo(*bit, src, dst);
-    
+    // endTurn();
 
     // at the end of processing all the code and finding the best move
         // Make the best move
@@ -1110,8 +1117,8 @@ int Chess::evaluateBoard(const std::string& state)
 // playerColor is either 1 or -1
 int Chess::negamax(std::string& state, int depth, int playerColor, int alpha, int beta) 
 {
-    if(depth == 0) return evaluateBoard(state);
     _countMoves++;
+    if(depth == 0) return -evaluateBoard(state);
     
     std::vector<BitMove> newMoves = generateAllMoves(state, playerColor);
     int bestVal = -100000000;
@@ -1122,10 +1129,15 @@ int Chess::negamax(std::string& state, int depth, int playerColor, int alpha, in
         pushMove(move, state, playerColor);
         bestVal = std::max(bestVal, -negamax(state, depth-1, -playerColor, -beta, -alpha));
         // Undo move
-        popState();
+        // popState();
         // alpha beta cut-off
         alpha = std::max(alpha, bestVal);
-        if(alpha >= beta) break;
+        if(alpha > beta) 
+        {
+            popState();
+            break;
+        }
+        popState();
     }
     // return bestVal code
     return bestVal;
