@@ -159,7 +159,7 @@ void Game::findDropTarget(ImVec2 &pos)
 			if (_dropTarget && square != _dropTarget)
 			{
 				_dropTarget->willNotDropBit(_dragBit);
-				_dropTarget->setHighlighted(false);
+				// _dropTarget->setHighlighted(false);
 				_dropTarget = nullptr;
 			}
 			if (_oldHolder && square->canDropBitAtPoint(_dragBit, pos) && canBitMoveFromTo(*_dragBit, *_oldHolder, *square))
@@ -398,5 +398,4 @@ void Game::mouseUp(ImVec2 &location, Entity *entity)
 }
 
 void Game::clearBoardHighlights()
-{
-}
+{}

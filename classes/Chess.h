@@ -3,8 +3,13 @@
 #include "Game.h"
 #include "Grid.h"
 #include "BitBoard.h"
+// #include "GameState.h"
+#include <chrono>
+#include <iomanip>
 
 constexpr int pieceSize = 80;
+constexpr int WHITE = +1, BLACK = -1;
+constexpr int MAX_DEPTH = 24;
 
 // enum ChessPiece
 // {
@@ -17,7 +22,7 @@ constexpr int pieceSize = 80;
 //     King
 // };
 
-enum AllBitboards
+enum AllBitBoards
 {
     WHITE_PAWN,
     WHITE_KNIGHT,
@@ -34,12 +39,34 @@ enum AllBitboards
     BLACK_KING,
     BLACK_OCCUPANCY,
     ALL_OCCUPANCY,
+    EMPTY_SQUARES,
     TOTAL_BITBOARDS,
+};
+
+enum MoveFlags {
+    EnPassant = 0x01, // 0000 0001
+    IsCapture = 0x02, // 0000 0010
+    KingSideCastle = 0x04, // 0000 0100
+    QueenSideCastle = 0x08, // 0000 1000
+    IsPromotion = 0x10 // 0001 0000
 };
 
 // enum of indices for each color and each piece type, as well as white and black occupancy
 
-class Chess : public Game
+struct alignas(32) GameStateData {
+    char state[64];                 // persisitent
+    char color;                     // BLACK or WHITE
+    int flags;
+
+    GameStateData() : flags(0)
+        , color(WHITE) {
+        std::memset(state, '0', sizeof(state));
+    }
+    GameStateData(const GameStateData&) = default;
+    GameStateData& operator=(const GameStateData&) = default;
+};
+
+class Chess : public Game, public GameStateData
 {
 public:
     Chess();
@@ -50,6 +77,7 @@ public:
     bool canBitMoveFrom(Bit &bit, BitHolder &src) override;
     bool canBitMoveFromTo(Bit &bit, BitHolder &src, BitHolder &dst) override;
     bool actionForEmptyHolder(BitHolder &holder) override;
+    void bitMovedFromTo(Bit &bit, BitHolder &src, BitHolder& dst) override;
 
     void stopGame() override;
 
@@ -64,50 +92,136 @@ public:
 
     // General Helpers
         // don't need getOccupancy;
-    uint64_t getOccupancy();
+    void clearBoardHighlights() override;
 
     // Kings
     void generateKingMoveBitBoard();
-    void generateKingMoves(std::vector<BitMove>& moves, BitboardElement kingBoard, uint64_t emptySquares);
+    void generateKingMoves(std::vector<BitMove>& moves, const BitBoardElement kingBoard, const BitBoardElement emptySquares);
 
-    // Knights
+    // // Knights
     void generateKnightMoveBitBoard();
-    void generateKnightMoves(std::vector<BitMove>& moves, BitboardElement knightBoard, uint64_t emptySquares);
+    void generateKnightMoves(std::vector<BitMove>& moves, const BitBoardElement knightBoard, const BitBoardElement emptySquares);
 
-    // Pawns
-    void generatePawnMoves(BitboardElement& singlePush, BitboardElement& doublePush, BitboardElement& attackLeft, BitboardElement& attackRight);
-    BitboardElement generatePawnBitboardPerFile(BitboardElement& singlePush, BitboardElement& doublePush, BitboardElement& attackLeft, BitboardElement& attackRight, int file);
+    // // Pawns
+    // void generatePawnMoves(BitBoardElement& singlePush, BitBoardElement& doublePush, BitBoardElement& attackLeft, BitBoardElement& attackRight);
+    // BitBoardElement generatePawnBitBoardPerFile(BitBoardElement& singlePush, BitBoardElement& doublePush, BitBoardElement& attackLeft, BitBoardElement& attackRight, int file);
+    const BitBoardElement generatePawnAttacks(const BitBoardElement pawns, char color);
+    uint64_t generatePawnAttacksBitBoard(int square, char color);
+    // There are more things to pass, unsure what they'd be
+    void generatePawnMoveList(std::vector<BitMove>& moves, const BitBoardElement pawns, const BitBoardElement emptySquares, const BitBoardElement enemies, int color);
+    void addPawnBitBoardMovesToList(std::vector<BitMove>& moves, const BitBoardElement moveBitBoard, const int shift);
 
-    std::vector<BitMove> generateAllMoves();
+    // // Rooks, Bishops, Queens
+    void generateRookMoves(std::vector<BitMove>& moves, const BitBoardElement rookBoard, BitBoardElement friendlies, const BitBoardElement occupancy);
+    void generateBishopMoves(std::vector<BitMove>& moves, const BitBoardElement bishopBoard, BitBoardElement friendlies, const BitBoardElement occupancy);
+    void generateQueenMoves(std::vector<BitMove>& moves, const BitBoardElement queenBoard, BitBoardElement friendlies, const BitBoardElement occupancy);
+
+    // return allmoves, or just store in all moves and clear at beginning?
+    // adding params for AI evaluation
+    std::vector<BitMove> generateAllMoves(const std::string& state, int color);
+    bool isSquareAttacked(int square, char attackerColor, const BitBoardElement (&boards)[TOTAL_BITBOARDS]);
+    void filterOutIllegalMoves(std::vector<BitMove>& moves, int playerColor);
+
+    
+    // AI
+    void updateAI() override;
+    int evaluateBoard(const std::string& state);
+    bool gameHasAI()
+    {
+        return isAIEnabled;
+    };
 
 private:
+    bool isAIEnabled = true;
+
     Bit* PieceForPlayer(const int playerNumber, ChessPiece piece);
     Player* ownerAt(int x, int y) const;
     void FENtoBoard(const std::string& fen);
     char pieceNotation(int x, int y) const;
 
     Grid* _grid;
-    
+    // keep track of current player
+    int _currentPlayer;
+
+    // GameState gameState;
+
     // Moves Vector (probably not stored here)
     // updated every turn!
-    std::vector<BitMove> allMoves;
+    std::vector<BitMove> _allMoves;
 
-    // Bitboard arrays
+    // BitBoard arrays
     // precomputation ones
-    BitboardElement _knightBitboards[64];
-    BitboardElement _kingBitboards[64];
-    // BitboardElement _whitePawnBitBoards[64], _blackPawnBitBoards[64];
-    // BitboardElement _currentPawnMove;
+
+    // These are handled in magicBitBoards.h, as knightAttacks and kingAttacks, precomputed already
+    // BitBoard _knightBitBoards[64];
+    // BitBoard _kingBitBoards[64];
+    // BitBoard _whitePawnBitBoards[64], _blackPawnBitBoards[64];
+    // BitBoard _currentPawnMove;
 
     // File masks
-    // BitboardElement
+    // BitBoard
     // current state
-    BitboardElement _tableBitBoards[TOTAL_BITBOARDS];
-        // this represents current state of the table for each piece and both occupancies
+
+    // Current state of the table for each piece and both occupancies.
+    BitBoardElement _tableBitBoards[TOTAL_BITBOARDS];
     // create an int mapping size 'z'+1
         // this is to map for any letter that we need
         // is also const!
-    int mapping['z' + 1];  
+    int indexMapping['z'+1], materialValsMapping['z'+1];
+    ChessPiece pieceMapping['z'+1]; 
         // clear everything to be 0 first
         // populate in the constructor
+
+    // Some Masks
+    // uint64_t num = 0x0000000000FF0000;
+    const uint64_t RANK_3 = 0x0000000000FF0000,
+                    RANK_6 = 0x0000FF0000000000,
+                    notAFile = 0xFEFEFEFEFEFEFEFEULL,
+                    notHFile = 0x7F7F7F7F7F7F7F7FULL;
+
+
+    // AI
+    int         negamax(std::string& state, int depth, int playerColor, int alpha, int beta);
+    int         _countMoves;
+
+    GameStateData stateStack[MAX_DEPTH];
+    int stackPtr = 0;
+
+    uint64_t _zobristHash[2]; // when one hash value is made, the other is made as well because it's just a xor of the first by the color bit
+    BitBoardElement _attackBitBoard;
+    
+    inline void pushMove(const BitMove& move, std::string& state, int playerColor) {
+        pushState();
+        unsigned char fromPiece = state[move.from];
+        state[move.from] = '0';
+        state[move.to] = fromPiece;
+        if (move.flags & KingSideCastle) {
+            state[move.to - 1] = state[move.to + 1];
+            state[move.to + 1] = '0';
+        } else if (move.flags & QueenSideCastle) {
+            state[move.to + 1] = state[move.to - 2];
+            state[move.to - 2] = '0';
+        } else if (move.flags & EnPassant) {
+            // check for color to determine which direction to capture
+            if (fromPiece == 'P') {
+                state[move.to - 8] = '0';
+            } else {
+                state[move.to + 8] = '0';
+            }
+        } else if (move.flags & IsPromotion) {
+            state[move.to] = color == WHITE ? 'Q' : 'q';
+        }
+        // flip the color bit as it now becomes the other player's turn
+        color = (color == WHITE) ? BLACK : WHITE;
+        flags = 0; // invalidate all the flags
+    }
+
+    inline void pushState() {
+        assert(stackPtr < MAX_DEPTH);
+        stateStack[stackPtr++] = static_cast<const GameStateData&>(*this);
+    }
+    inline void popState() {
+        assert(stackPtr > 0);
+        static_cast<GameStateData&>(*this) = stateStack[--stackPtr];
+    }
 };
