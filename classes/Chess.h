@@ -11,16 +11,137 @@ constexpr int pieceSize = 80;
 constexpr int WHITE = +1, BLACK = -1;
 constexpr int MAX_DEPTH = 24;
 
-// enum ChessPiece
-// {
-//     NoPiece,
-//     Pawn,
-//     Knight,
-//     Bishop,
-//     Rook,
-//     Queen,
-//     King
-// };
+constexpr int whiteKingBoard[64] = {
+    -6, -8, -8, -10, -10, -8, -8, -6, 
+    -6, -8, -8, -10, -10, -8, -8, -6, 
+    -6, -8, -8, -10, -10, -8, -8, -6, 
+    -6, -8, -8, -10, -10, -8, -8, -6, 
+    -4, -6, -6,  -8,  -8, -6, -6, -4, 
+    -2, -4, -4,  -4,  -4, -4, -4,  2, 
+     4,  4,  0,   0,   0,  0,  4,  4, 
+     4,  3,  1,   0,   0,  1,  3,  4
+};
+
+constexpr int whiteQueenBoard[64] = {
+    -4, -2, -2, -1, -1, -2, -2, -4, 
+    -2,  0,  0,  0,  0,  0,  0, -2, 
+    -2,  0,  1,  1,  1,  1,  0, -2, 
+    -1,  0,  1,  1,  1,  1,  0, -1, 
+    -1,  0,  1,  1,  1,  1,  0, -1, 
+    -2,  0,  1,  1,  1,  1,  0, -2, 
+    -2,  0,  0,  0,  0,  0,  0, -2, 
+    -4, -2, -2, -1, -1, -2, -2, -4, 
+};
+
+constexpr int whiteRookBoard[64] = {
+     0, 0, 0, 0, 0, 0, 0,  0, 
+     1, 2, 2, 2, 2, 2, 2,  1, 
+    -1, 0, 0, 0, 0, 0, 0, -1, 
+    -1, 0, 0, 0, 0, 0, 0, -1, 
+    -1, 0, 0, 0, 0, 0, 0, -1, 
+    -1, 0, 0, 0, 0, 0, 0, -1, 
+    -1, 0, 0, 0, 0, 0, 0, -1, 
+     0, 0, 0, 1, 1, 0, 0,  0, 
+};
+
+constexpr int whiteBishopBoard[64] = {
+    -4, -2, -2, -2, -2, -2, -2, -4, 
+    -2,  0,  0,  0,  0,  0,  0, -2, 
+    -2,  0,  1,  2,  2,  1,  0, -2, 
+    -2,  1,  1,  2,  2,  1,  1, -2, 
+    -2,  0,  2,  2,  2,  2,  0, -2, 
+    -2,  2,  2,  2,  2,  2,  2, -2, 
+    -2,  1,  0,  0,  0,  0,  1, -2, 
+    -4, -2, -2, -2, -2, -2, -2, -4, 
+};
+
+constexpr int whiteKnightBoard[64] = {
+    -10, -8, -6, -6, -6, -6, -8, -10, 
+    -8,  -4,  0,  0,  0,  0, -4,  -8, 
+    -6,   0,  2,  3,  4,  2,  0,  -6, 
+    -6,   1,  3,  4,  4,  3,  0,  -6, 
+    -6,   0,  3,  4,  4,  3,  0,  -6, 
+    -6,   1,  0,  0,  0,  0,  1,  -6, 
+    -8,  -4,  0,  1,  1,  0, -4,  -8, 
+    -10, -8, -6, -6, -6, -6, -8, -10, 
+};
+
+constexpr int whitePawnBoard[64] = {
+     0,  0,  0,  0,  0,  0,  0,  0, 
+    10, 10, 10, 10, 10, 10, 10, 10, 
+     2,  2,  4,  6,  6,  4,  2,  2, 
+     1,  1,  2,  5,  5,  2,  1,  1, 
+     0,  0,  0,  4,  4,  0,  0,  0, 
+     1, -1, -2,  0,  0, -2, -1,  1, 
+     1,  2,  2, -4, -4,  2,  2,  1, 
+     0,  0,  0,  0,  0,  0,  0,  0, 
+};
+
+constexpr int blackKingBoard[64] = {         
+     4,  3,  1,   0,   0,  1,  3,  4,
+     4,  4,  0,   0,   0,  0,  4,  4,
+    -2, -4, -4,  -4,  -4, -4, -4,  2,
+    -4, -6, -6,  -8,  -8, -6, -6, -4,
+    -6, -8, -8, -10, -10, -8, -8, -6,
+    -6, -8, -8, -10, -10, -8, -8, -6,
+    -6, -8, -8, -10, -10, -8, -8, -6,
+    -6, -8, -8, -10, -10, -8, -8, -6, 
+};
+
+constexpr int blackQueenBoard[64] = {    
+    -4, -2, -2, -1, -1, -2, -2, -4,
+    -2,  0,  0,  0,  0,  0,  0, -2,
+    -2,  0,  1,  1,  1,  1,  0, -2, 
+    -1,  0,  1,  1,  1,  1,  0, -1, 
+    -1,  0,  1,  1,  1,  1,  0, -1,
+    -2,  0,  1,  1,  1,  1,  0, -2,
+    -2,  0,  0,  0,  0,  0,  0, -2,
+    -4, -2, -2, -1, -1, -2, -2, -4,
+};
+
+constexpr int blackRookBoard[64] = { 
+     0, 0, 0, 1, 1, 0, 0,  0,
+    -1, 0, 0, 0, 0, 0, 0, -1, 
+    -1, 0, 0, 0, 0, 0, 0, -1, 
+    -1, 0, 0, 0, 0, 0, 0, -1, 
+    -1, 0, 0, 0, 0, 0, 0, -1, 
+    -1, 0, 0, 0, 0, 0, 0, -1, 
+     1, 2, 2, 2, 2, 2, 2,  1,
+     0, 0, 0, 0, 0, 0, 0,  0,  
+};
+
+constexpr int blackBishopBoard[64] = {
+    -4, -2, -2, -2, -2, -2, -2, -4, 
+    -2,  1,  0,  0,  0,  0,  1, -2,
+    -2,  2,  2,  2,  2,  2,  2, -2,
+    -2,  0,  2,  2,  2,  2,  0, -2,
+    -2,  1,  1,  2,  2,  1,  1, -2,
+    -2,  0,  1,  2,  2,  1,  0, -2,
+    -2,  0,  0,  0,  0,  0,  0, -2,
+    -4, -2, -2, -2, -2, -2, -2, -4, 
+};
+
+constexpr int blackKnightBoard[64] = {
+    -10, -8, -6, -6, -6, -6, -8, -10,  
+    -8,  -4,  0,  1,  1,  0, -4,  -8,
+    -6,   1,  0,  0,  0,  0,  1,  -6,
+    -6,   0,  3,  4,  4,  3,  0,  -6, 
+    -6,   0,  3,  4,  4,  3,  0,  -6,  
+    -6,   0,  2,  3,  4,  2,  0,  -6,
+    -8,  -4,  0,  0,  0,  0, -4,  -8,
+    -10, -8, -6, -6, -6, -6, -8, -10, 
+};
+
+constexpr int blackPawnBoard[64] = {
+     0,  0,  0,  0,  0,  0,  0,  0,   
+     1,  2,  2, -4, -4,  2,  2,  1,
+     1, -1, -2,  0,  0, -2, -1,  1,
+     0,  0,  0,  4,  4,  0,  0,  0,
+     1,  1,  2,  5,  5,  2,  1,  1,
+     2,  2,  4,  6,  6,  4,  2,  2,
+    10, 10, 10, 10, 10, 10, 10, 10,
+     0,  0,  0,  0,  0,  0,  0,  0, 
+};
 
 enum AllBitBoards
 {
@@ -73,6 +194,7 @@ public:
     ~Chess();
 
     void setUpBoard() override;
+    void init(const char* newState, int player);
 
     bool canBitMoveFrom(Bit &bit, BitHolder &src) override;
     bool canBitMoveFromTo(Bit &bit, BitHolder &src, BitHolder &dst) override;
@@ -118,9 +240,9 @@ public:
 
     // return allmoves, or just store in all moves and clear at beginning?
     // adding params for AI evaluation
-    std::vector<BitMove> generateAllMoves(const std::string& state, int color);
+    std::vector<BitMove> generateAllMoves();
     bool isSquareAttacked(int square, char attackerColor, const BitBoardElement (&boards)[TOTAL_BITBOARDS]);
-    void filterOutIllegalMoves(std::vector<BitMove>& moves, int playerColor);
+    void filterOutIllegalMoves(std::vector<BitMove>& moves);
 
     
     // AI
@@ -169,6 +291,7 @@ private:
         // is also const!
     int indexMapping['z'+1], materialValsMapping['z'+1];
     ChessPiece pieceMapping['z'+1]; 
+    // int weightedTableMapping[TOTAL_BITBOARDS][64];
         // clear everything to be 0 first
         // populate in the constructor
 
@@ -190,7 +313,7 @@ private:
     uint64_t _zobristHash[2]; // when one hash value is made, the other is made as well because it's just a xor of the first by the color bit
     BitBoardElement _attackBitBoard;
     
-    inline void pushMove(const BitMove& move, std::string& state, int playerColor) {
+    inline void pushMove(const BitMove& move) {
         pushState();
         unsigned char fromPiece = state[move.from];
         state[move.from] = '0';
@@ -211,7 +334,7 @@ private:
         } else if (move.flags & IsPromotion) {
             state[move.to] = color == WHITE ? 'Q' : 'q';
         }
-        // flip the color bit as it now becomes the other player's turn
+        // flip the _currentPlayer bit as it now becomes the other player's turn
         color = (color == WHITE) ? BLACK : WHITE;
         flags = 0; // invalidate all the flags
     }
