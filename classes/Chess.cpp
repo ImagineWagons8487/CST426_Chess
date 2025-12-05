@@ -129,7 +129,7 @@ void Chess::setUpBoard()
     init(initialStateString().c_str(), WHITE);
     if(gameHasAI())
     {
-        setAIPlayer(0);
+        setAIPlayer(1);
     }
 
     startGame();
@@ -261,7 +261,7 @@ bool Chess::canBitMoveFromTo(Bit &bit, BitHolder &src, BitHolder &dst)
 
     ChessSquare* srcSquare = dynamic_cast<ChessSquare*>(&src);
     ChessSquare* dstSquare = dynamic_cast<ChessSquare*>(&dst);
-    BitBoardElement* bb;
+    // BitBoardElement* bb;
     for(auto move : _allMoves)
     {
         // clearBoardHighlights();
@@ -503,9 +503,12 @@ void Chess::generatePawnMoveList(std::vector<BitMove>& moves, const BitBoardElem
 
     // same logic as before, less branching, more ternary
     BitBoardElement singlePush = (color == WHITE) ? (pawns.getData() << 8) & emptySquares.getData() : (pawns.getData() >> 8) & emptySquares.getData();
+    BitBoardElement promotePush = (color == WHITE) ? (singlePush.getData() & RANK_7) & emptySquares.getData() : (singlePush.getData() & RANK_2) & emptySquares.getData();
     BitBoardElement doublePush = (color == WHITE) ? ((singlePush.getData() & RANK_3) << 8) & emptySquares.getData() : ((singlePush.getData() & RANK_6) >> 8) & emptySquares.getData();
     BitBoardElement captureLeft = (color == WHITE) ? ((pawns.getData() & notAFile) << 7) & enemies.getData() : ((pawns.getData() & notAFile) >> 9) & enemies.getData();
     BitBoardElement captureRight = (color == WHITE) ? ((pawns.getData() & notHFile) << 9) & enemies.getData() : ((pawns.getData() & notHFile) >> 7) & enemies.getData();
+
+    
 
     // defining shifts so we can get the from for our BitMove
     const int shiftForward = (color == WHITE) ? 8 : -8;

@@ -309,8 +309,10 @@ private:
 
     // Some Masks
     // uint64_t num = 0x0000000000FF0000;
-    const uint64_t RANK_3 = 0x0000000000FF0000,
+    const uint64_t  RANK_2 = 0x000000000000FF00,
+                    RANK_3 = 0x0000000000FF0000,
                     RANK_6 = 0x0000FF0000000000,
+                    RANK_7 = 0x00FF000000000000,
                     notAFile = 0xFEFEFEFEFEFEFEFEULL,
                     notHFile = 0x7F7F7F7F7F7F7F7FULL;
 
