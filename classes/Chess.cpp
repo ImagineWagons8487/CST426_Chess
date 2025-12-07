@@ -124,7 +124,7 @@ void Chess::setUpBoard()
     init(initialStateString().c_str(), WHITE);
     if(gameHasAI())
     {
-        setAIPlayer(1);
+        setAIPlayer(0);
     }
 
     startGame();
@@ -211,9 +211,10 @@ void Chess::bitMovedFromTo(Bit &bit, BitHolder &src, BitHolder& dst)
     std::cout << "currentPlayer: " << playerColor << std::endl;
     
 
+    memcpy(state, stateString().c_str(), 64);
     // moves are set to generateAllmoves
     // generateAllMoves might also set _allMoves to the vector
-    memcpy(state, stateString().c_str(), 64);
+    _allMoves.clear();
     generateAllMoves(_allMoves);
     // clearBoardHighlights()
     clearBoardHighlights();
@@ -546,12 +547,12 @@ std::vector<BitMove> Chess::generateAllMoves(std::vector<BitMove>& moves)
     int oppBitIndex = color == WHITE ? BLACK_PAWN : WHITE_PAWN;
 
     // i need to isolate all the specific pieces and get the BitBoard for that index of that piece
-    generateKnightMoves(moves, _tableBitBoards[WHITE_KNIGHT + bitIndex], _tableBitBoards[WHITE_OCCUPANCY + bitIndex]);
-    generateKingMoves(moves, _tableBitBoards[WHITE_KING + bitIndex], _tableBitBoards[WHITE_OCCUPANCY + bitIndex]);
-    generatePawnMoveList(moves, _tableBitBoards[WHITE_PAWN + bitIndex], _tableBitBoards[EMPTY_SQUARES], _tableBitBoards[WHITE_OCCUPANCY + oppBitIndex], color);
-    generateRookMoves(moves, _tableBitBoards[WHITE_ROOK + bitIndex], _tableBitBoards[WHITE_OCCUPANCY + bitIndex], _tableBitBoards[ALL_OCCUPANCY]);
-    generateBishopMoves(moves, _tableBitBoards[WHITE_BISHOP + bitIndex], _tableBitBoards[WHITE_OCCUPANCY + bitIndex], _tableBitBoards[ALL_OCCUPANCY]);
     generateQueenMoves(moves, _tableBitBoards[WHITE_QUEEN + bitIndex], _tableBitBoards[WHITE_OCCUPANCY + bitIndex], _tableBitBoards[ALL_OCCUPANCY]);
+    generateRookMoves(moves, _tableBitBoards[WHITE_ROOK + bitIndex], _tableBitBoards[WHITE_OCCUPANCY + bitIndex], _tableBitBoards[ALL_OCCUPANCY]);
+    generateKnightMoves(moves, _tableBitBoards[WHITE_KNIGHT + bitIndex], _tableBitBoards[WHITE_OCCUPANCY + bitIndex]);
+    generateBishopMoves(moves, _tableBitBoards[WHITE_BISHOP + bitIndex], _tableBitBoards[WHITE_OCCUPANCY + bitIndex], _tableBitBoards[ALL_OCCUPANCY]);
+    generatePawnMoveList(moves, _tableBitBoards[WHITE_PAWN + bitIndex], _tableBitBoards[EMPTY_SQUARES], _tableBitBoards[WHITE_OCCUPANCY + oppBitIndex], color);
+    generateKingMoves(moves, _tableBitBoards[WHITE_KING + bitIndex], _tableBitBoards[WHITE_OCCUPANCY + bitIndex]);
     
     filterOutIllegalMoves(moves);
 
@@ -704,7 +705,7 @@ void Chess::updateAI()
     {
         pushMove(move);
 
-        int moveVal = -negamax(5, color, alpha, beta);
+        int moveVal = -negamax(6, color, alpha, beta);
         
         if(moveVal > bestVal)
         {
@@ -767,7 +768,7 @@ int Chess::negamax(int depth, int playerColor, int alpha, int beta)
     // if(newMoves.size() == 0) return evaluateBoard(state);
     if(newMoves.size() == 0) return 100000000*color;
     int bestVal = -100000000;
-    
+
     for(const auto& move : newMoves)
     {
         // push move
@@ -777,7 +778,7 @@ int Chess::negamax(int depth, int playerColor, int alpha, int beta)
         popState();
         // alpha beta cut-off
         alpha = std::max(alpha, bestVal);
-        if(alpha > beta) 
+        if(alpha >= beta) 
         {
             break;
         }
@@ -785,3 +786,10 @@ int Chess::negamax(int depth, int playerColor, int alpha, int beta)
     // return bestVal code
     return bestVal;   
 }
+
+// Ideas for Optimization:
+// Move Ordering!
+    // we want to sort the moves given from generateAllMoves based on some criteria
+    // we can just do based off capture
+    // We can also try "Most Valuable Victim minues Least Valuable Attacker"
+    // This allows for us to prune stuff more which means less moves checked

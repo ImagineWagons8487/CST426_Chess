@@ -394,6 +394,7 @@ void Game::mouseUp(ImVec2 &location, Entity *entity)
 		}
 		_dropTarget = nullptr;
 		_dragBit = nullptr;
+		clearBoardHighlights();
 	}
 }
 
