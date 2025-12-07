@@ -67,11 +67,6 @@ Chess::Chess()
     pieceMapping['q'] = Queen;
     pieceMapping['k'] = King;
 
-    // new mapping for weighted tables
-    // mapping will have length of TOTAL_BITBOARDS
-    // will map pieces to length 64 weighted tables
-    
-
 }
 
 Chess::~Chess()
@@ -133,14 +128,8 @@ void Chess::setUpBoard()
     }
 
     startGame();
-    _allMoves = generateAllMoves();
-    // generateKnightMoveBitBoard();
-    // generateKingMoveBitBoard();
-    // BitBoard singlePush, doublePush, attackLeft, attackRight;
-    // generatePawnMoves(singlePush, doublePush, attackLeft, attackRight);
-    // generatePawnBitBoardPerFile(singlePush, doublePush, attackLeft, attackRight, 0);
-    // generatePawnBitBoardPerFile(singlePush, doublePush, attackLeft, attackRight, 2);
-    // _knightBitBoards[45].printBitBoard();
+    _allMoves.reserve(32);
+    generateAllMoves(_allMoves);
 }
 
 void Chess::FENtoBoard(const std::string& fen) {
@@ -209,15 +198,6 @@ bool Chess::canBitMoveFrom(Bit &bit, BitHolder &src)
             valid = true;
         }
     }
-    // this is done because calling this as often as canBitMoveFromTo causes FRAME DROPS
-    // ChessPiece piece = (ChessPiece)(bit.gameTag() < 128 ? bit.gameTag() : bit.gameTag() - 128);
-    // if(piece == Pawn)
-    // {
-    //     ChessSquare* srcSquare = dynamic_cast<ChessSquare*>(&src);
-    //     BitBoard singlePush, doublePush, attackLeft, attackRight;
-    //     generatePawnMoves(singlePush, doublePush, attackLeft, attackRight);
-    //     // _currentPawnMove = generatePawnBitBoardPerFile(singlePush, doublePush, attackLeft, attackRight, srcSquare->getColumn());
-    // }
 
     if (pieceColor == currentPlayer) return valid;
     return false;
@@ -234,7 +214,7 @@ void Chess::bitMovedFromTo(Bit &bit, BitHolder &src, BitHolder& dst)
     // moves are set to generateAllmoves
     // generateAllMoves might also set _allMoves to the vector
     memcpy(state, stateString().c_str(), 64);
-    _allMoves = generateAllMoves();
+    generateAllMoves(_allMoves);
     // clearBoardHighlights()
     clearBoardHighlights();
     // end turn
@@ -252,13 +232,6 @@ void Chess::clearBoardHighlights()
 bool Chess::canBitMoveFromTo(Bit &bit, BitHolder &src, BitHolder &dst)
 {
 
-    // looping through moves
-    // get src and dest square indices
-    // if current move has the same indices as src and dst, then return true;
-    // ChessPiece piece = (ChessPiece)(bit.gameTag() < 128 ? bit.gameTag() : bit.gameTag() - 128);
-    // int pieceColor = bit.gameTag() & 128;
-    // bool valid = false;
-
     ChessSquare* srcSquare = dynamic_cast<ChessSquare*>(&src);
     ChessSquare* dstSquare = dynamic_cast<ChessSquare*>(&dst);
     // BitBoardElement* bb;
@@ -272,55 +245,6 @@ bool Chess::canBitMoveFromTo(Bit &bit, BitHolder &src, BitHolder &dst)
         }
     }
     return false;
-
-
-    // get current bit piece type, we use the game tag system to store that data
-    // depending on piece type, grab that bit board at src idx
-    // branching behavior :(
-    // get bit board for src, src needs to be casted into a chessSquare, will column and row be correct then?
-    // chessSquare gets narrowed into bitholder and then expanded back into chessSquare, are we able to preserve col/row data?
-        // we are because what's being passed in already has that data
-    // switch(piece)
-    // {
-    //     case Knight:
-    //         // set bb to the right BitBoard
-    //         bb = &KnightAttacks[srcSquare->getSquareIndex()];
-    //         break;
-    //     case King:
-    //         bb = &KingAzttacks[srcSquare->getSquareIndex()];
-    //         break;
-    //     case Pawn:
-    //         // bb = &_currentPawnMove;
-    //         break;
-    //     default:
-    //         bb = nullptr;
-    //         break;
-
-            
-    // }
-    // if(piece == Knight)
-    // {
-    //     bb = &_knightBitBoards[srcSquare->getSquareIndex()];
-    // }
-    // else if(piece == King)
-    // {
-    //     bb = &_kingBitBoards[srcSquare->getSquareIndex()];
-    // }
-    // we do the efficient iteration, where we look at only set bits
-    // forEachBit should be doing that
-    // if(bb)
-    // {
-    //     bb->forEachBit([&](int idx)
-    //     {
-    //         // if lambda is called, then current idx has a set bit
-    //         // check if idx is equal to dst idx
-    //         if(idx == dstSquare->getSquareIndex())
-    //         {
-    //             valid = true;
-    //         }
-    //     });
-    // }
-    // return valid;
 }
 
 void Chess::stopGame()
@@ -592,17 +516,8 @@ void Chess::generateQueenMoves(std::vector<BitMove>& moves, const BitBoardElemen
     
 }
 
-std::vector<BitMove> Chess::generateAllMoves()
+std::vector<BitMove> Chess::generateAllMoves(std::vector<BitMove>& moves)
 {
-    // create moves vec
-    // reserve 32
-    // so there will ever only be 32 moves
-
-    // CREATE NEW MOVES VEC
-    std::vector<BitMove> moves;
-    moves.reserve(32);
-
-
     // clear allBitBoards
     for(int i=0; i<TOTAL_BITBOARDS; ++i)
     {
@@ -637,11 +552,7 @@ std::vector<BitMove> Chess::generateAllMoves()
     generateRookMoves(moves, _tableBitBoards[WHITE_ROOK + bitIndex], _tableBitBoards[WHITE_OCCUPANCY + bitIndex], _tableBitBoards[ALL_OCCUPANCY]);
     generateBishopMoves(moves, _tableBitBoards[WHITE_BISHOP + bitIndex], _tableBitBoards[WHITE_OCCUPANCY + bitIndex], _tableBitBoards[ALL_OCCUPANCY]);
     generateQueenMoves(moves, _tableBitBoards[WHITE_QUEEN + bitIndex], _tableBitBoards[WHITE_OCCUPANCY + bitIndex], _tableBitBoards[ALL_OCCUPANCY]);
-    // Graeme's code
-    // for(int i=0; i<64; ++i)
-    // {
-    //     _knightBitBoards[i] = generateKnightMoveBitBoard(i);
-    // }
+    
     filterOutIllegalMoves(moves);
 
     return moves;
@@ -779,7 +690,9 @@ void Chess::updateAI()
 
     // get state string
     // std::string state = stateString();
-    auto newMoves = generateAllMoves();
+    std::vector<BitMove> newMoves;
+    newMoves.reserve(32);
+    generateAllMoves(newMoves);
     // assert(newMoves.size() > 0);
     if(newMoves.size() == 0)
     {
@@ -789,15 +702,9 @@ void Chess::updateAI()
     _countMoves = 0;
     for(auto move : newMoves)
     {
-        // char boardSave = state[move.to];
-        // char pieceMoving = state[move.from];
         pushMove(move);
 
-        // state[move.to] = pieceMcoving;
-        // state[move.from] = '0';
         int moveVal = -negamax(5, color, alpha, beta);
-        // state[move.from] = pieceMoving;
-        // state[move.to] = boardSave;
         
         if(moveVal > bestVal)
         {
@@ -805,8 +712,6 @@ void Chess::updateAI()
             bestVal = moveVal;
         }
 
-        // bestMove = moveVal > bestVal ? &move : bestMove;
-        // bestVal = moveVal > bestVal ? moveVal : bestVal;
         
         popState();
     }
@@ -818,12 +723,6 @@ void Chess::updateAI()
                   << " boards/s)" << std::defaultfloat << std::endl;
 
         
-        // if(!bestMove)
-        // {
-        //     std::cout << "CHECKMATE\n";
-        //     endTurn();
-        //     return; 
-        // }
         int srcSquare = bestMove.from;
         int dstSquare = bestMove.to;
         BitHolder& src = getHolderAt(srcSquare&7, srcSquare/8);
@@ -851,63 +750,8 @@ int Chess::evaluateBoard(const std::string& state)
     for(int i=0; i<64; ++i)
     {
         value += materialValsMapping[state[i]];
-        value += pieceSquareTables[state[i]][i];
-        // i don't like this >:(
-        // switch (state[i])
-        // {
-        //     case 'P':
-        //         value += whitePawnBoard[i]*10;
-        //         break;
-
-        //     case 'N':
-        //         value += whiteKnightBoard[i]*10;
-        //         break;
-
-        //     case 'B':
-        //         value += whiteBishopBoard[i]*10;
-        //         break;
-
-        //     case 'R':
-        //         value += whiteRookBoard[i]*10;
-        //         break;
-
-        //     case 'Q':
-        //         value += whiteQueenBoard[i]*10;
-        //         break;
-
-        //     case 'K':
-        //         value += whiteKingBoard[i]*10;
-        //         break;
-
-        //     case 'p':
-        //         value -= blackPawnBoard[i]*10;
-        //         break;
-
-        //     case 'n':
-        //         value -= blackKnightBoard[i]*10;
-        //         break;
-
-        //     case 'b':
-        //         value -= blackBishopBoard[i]*10;
-        //         break;
-
-        //     case 'r':
-        //         value -= blackRookBoard[i]*10;
-        //         break;
-
-        //     case 'q':
-        //         value -= blackQueenBoard[i]*10;
-        //         break;
-
-        //     case 'k':
-        //         value -= blackKingBoard[i]*10;
-        //         break;
-        //     default:
-        //         break;
-        // }
+        value += pieceSquareTables[state[i]][i];   
     }
-    // for char in state
-        // value += boardValues[char]
     return value*color;
 }
 
@@ -917,9 +761,10 @@ int Chess::negamax(int depth, int playerColor, int alpha, int beta)
     _countMoves++;
     if(depth == 0) return evaluateBoard(state);
     
-    std::vector<BitMove> newMoves = generateAllMoves();
+    std::vector<BitMove> newMoves;
+    newMoves.reserve(32);
+    generateAllMoves(newMoves);
     // if(newMoves.size() == 0) return evaluateBoard(state);
-    // if newMoves.size == 0, checkmate has happened, return maximum value?
     if(newMoves.size() == 0) return 100000000*color;
     int bestVal = -100000000;
     
@@ -934,369 +779,9 @@ int Chess::negamax(int depth, int playerColor, int alpha, int beta)
         alpha = std::max(alpha, bestVal);
         if(alpha > beta) 
         {
-            // popState();
             break;
         }
-        // popState();
     }
     // return bestVal code
-    return bestVal;
-    
-
-    
-    return 0;
+    return bestVal;   
 }
-
-// =====================  DEPRECATED  ================================
-// code to generate moves and setup negamax here
-    // for(const auto& move : newMoves) {
-    //     gamestate.pushMove(move);
-    //     bestVal = std::max(bestVal, -negamax(gamestate, depth - 1, -beta, -alpha));
-    //     // Undo the move
-    //     gamestate.popState();
-    //     // alpha beta cut-off
-    //     alpha = std::max(alpha, bestVal);
-    //     if (alpha >= beta) {
-    //         break;
-    //     }
-    // }
-    // code to return bestVal here
-
-    // if depth ==0 return evaluateBoard(state) * playerColor
-    // auto newMoves = generateAllMoves(state, playerColor);
-    // int bestVal = -1000000000;
-    // // loop through moves
-    // for(auto move : newMoves)
-    // {
-    //     // boardSave = state at move.to
-    //     char boardSave = state[move.to];
-    //     // peiceMoving = state at move.from
-    //     char pieceMoving = state[move.from];
-    //     // make the move
-    //     // state at move.to = pieceMoving
-    //     state[move.to] = pieceMoving;
-    //     // state at move.from = '0';
-    //     state[move.from] = '0';
-    //     bestVal = std::max(negamax(state, depth-1, playerColor*-1, -beta, -alpha), bestVal);
-    //     // reset move
-    //     state[move.from] = pieceMoving;
-    //     state[move.to] = boardSave;
-    //     // alpha beta stuff
-    //     alpha = std::max(alpha, bestVal);
-    //     if(alpha > beta) break; // ew branching behavior, maybe can be done with no branching and a bool? unsure
-    // }
-    // return bestVal;
-
-   // endTurn();
-
-    // at the end of processing all the code and finding the best move
-        // Make the best move
-    // if(bestVal != negInfinite) {
-    // const double seconds = std::chrono::duration<double>(std::chrono::steady_clock::now() - searchStart).count();
-    // const double boardsPerSecond = seconds > 0.0 ? static_cast<double>(_countMoves) / seconds : 0.0;
-    // std::cout << "Moves checked: " << _countMoves
-    //           << " (" << std::fixed << std::setprecision(2) << boardsPerSecond
-    //           << " boards/s)" << std::defaultfloat << std::endl;
-    
-    // int srcSquare = bestMove.from;
-    // int dstSquare = bestMove.to;
-    // BitHolder& src = getHolderAt(srcSquare&7, srcSquare/8);
-    // BitHolder& dst = getHolderAt(dstSquare&7, dstSquare/8);
-    // Bit* bit = src.bit();
-    // dst.dropBitAtPoint(bit, ImVec2(0, 0));
-    // src.setBit(nullptr);
-    // bitMovedFromTo(*bit, src, dst);
-    // }
-
-    // loop through moves
-        // char boardSave = state[move.to]
-        // char pieceMoving = state[move.from]
-
-        // Make the move
-        // state[move.to] = pieceMoving;
-        // state[move.from] = '0';
-        // countMoves = 0;
-        // moveVal = negamax(state, 0, WHITE)
-        // state[move.from] = pieceMoving
-        // state at move.to = boardSave
-
-        // if val of current move is better than best value, update
-        // if moveVal > bestVal
-            // bestVal = moveVal
-            // bestMove = move
-
-    // if best val != -10000
-        // print countMoves
-        // char pieceMoving = state[bestmove.form]
-        // state at bestmove to = piecemoving;
-        // state at bestmove from = '0'
-        // setstatestring(state)
-        // endturn
-        
-// do I even need this?
-// I don't
-// I never figured this out :(
-    // it was to do with state strings right?
-// uint64_t Chess::getOccupancy()
-// {
-//     uint64_t occupancy = 0;
-//     // loop through 64 bits to get data at each bit
-//     // how would I get the data? stateString? BitHolder data?
-//         // there shouldn't be a way to access board data with bit boards because this func is technically doing that
-//     // would I have a white occupancy and black occupancy? i.e. this function would be called twice per game state?
-//         // this is because white moves will get restricted by white occupancy and vice versa
-//     return occupancy;
-// }
-
-// Kings
-
-// Generate King BitBoards
-// void Chess::generateKingMoveBitBoard()
-// {
-//     // offsets
-//     std::pair<int, int> offsets[] = {
-//         {-1, 1}, {0, 1}, {1, 1},
-//         {-1, 0},         {1, 0},
-//         {-1, -1}, {0, -1}, {1, -1}
-//     };
-
-//     for(int y=0; y<8; ++y)
-//     {
-//         for(int x=0; x<8; ++x)
-//         {
-//             for(auto [dx, dy] : offsets)
-//             {
-//                 // naiive implementation, not considering out of bounds
-//                 // setting a bit: value |= (1 << n)
-
-//                 // shifting by x then shifting by y
-//                 // index is y level multiplied by 8 added x
-//                 if(y + dy >= 0 && y + dy < 8 && x + dx >= 0 && x + dx < 8)
-//                 {
-//                     _kingBitBoards[(y*8)+x] |= (1ULL << ((dx+x) + 8*(dy+y)));
-//                 }
-//             }
-//         }
-//     }
-// }
-
-// Knights
-
-// Generate Knight BitBoards
-// void Chess::generateKnightMoveBitBoard()
-// {
-//     offsets are vector of pairs
-//     constexpr doesn't work for this, but it doesn't have any operations?
-//     by passing a literal array, probably trying to use it with a constructor for vector of pairs
-//     std::pair<int, int> offsets[] = {
-//         {-2, -1}, {-2, 1}, {2, -1}, {2, 1},
-//         {-1, -2}, {-1, 2}, {1, -2}, {1, 2}
-//     };
-
-//     // {x, y}
-//     // x offset is shifting by x
-//     // y offset is shifting by 8*y
-
-//     // for every index 
-//     for(int y=0; y<8; ++y)
-//     {
-//         for(int x=0; x<8; ++x)
-//         {
-//             for(auto [dx, dy] : offsets)
-//             {
-//                 // naiive implementation, not considering out of bounds
-//                 // setting a bit: value |= (1 << n)
-
-//                 // shifting by x then shifting by y
-//                 // index is y level multiplied by 8 added x
-//                 if(y + dy >= 0 && y + dy < 8 && x + dx >= 0 && x + dx < 8)
-//                 {
-//                     _knightBitBoards[(y*8)+x] |= (1ULL << ((dx+x) + 8*(dy+y)));
-//                 }
-//             }
-//         }
-//     }
-// }
-
-// Pawns (deprecated)
-
-// void Chess::generatePawnMoves(BitBoard& singlePush, BitBoard& doublePush, BitBoard& attackLeft, BitBoard& attackRight)
-// {
-//     // consider 3 possibles, move 1 rank, move 2 ranks, capture
-//     // all should be put into move bit boards?
-//     // different for white and black, shouldn't be like this?
-
-//     // Final Implementation, check current turn and get movement/captures for that color
-//     // try with ternaries
-//     // getting occupancy
-//     constexpr char whitePawnChar = 'P', blackPawnChar = 'p';
-//     std::string state = stateString();
-//     // you need full occupancy, white occupancy, black occupancy, pawns for current player, we want the current player number to determine some behavior
-//         // current player number determines which side we're operating for and which occupancy we want to try and capture
-//     BitBoard occupancy, pawns, whiteOccupancy, blackOccupancy;
-//     char pawnChar = getCurrentPlayer()->playerNumber() == 0 ? whitePawnChar : blackPawnChar;
-//     // making occupancy, whitePawns, and blackPawns, since we need different ones for each color
-//     // uint64_t occupancy, whitePawns, blackPawns, whiteOccupancy, blackOccupancy;
-//     for(int i=0; i<state.length(); ++i)
-//     {
-//         if(state[i] != '0')
-//         {
-//             occupancy |= 1ULL<<i;
-//         }
-//         if(state[i] == pawnChar)
-//         {
-//             pawns |= 1ULL<<i;
-//         }
-//         if(state[i] == whitePawnChar) // TODO: white occupancy is just the pawns here
-//         {
-//             whiteOccupancy |= 1ULL<<i;
-//         }
-//         if(state[i] == blackPawnChar) // TODO: black occupancy is just the pawns here
-//         {
-//             blackOccupancy |= 1ULL<<i;
-//         }
-//     }
-//     uint64_t emptySquares = ~occupancy.getData();
-
-//     // can't print const BitBoards? what in the print function does that?
-//     BitBoard onSecondRank, 
-//                     notAFilePawn(pawns.getData() & notAFile), 
-//                     notHFilePawn(pawns.getData() & notHFile);
-
-//     if(pawnChar == whitePawnChar)
-//     {
-//         singlePush.setData(pawns.getData() << 8);
-//         singlePush &= emptySquares;
-//         onSecondRank.setData((singlePush.getData() & RANK_3));
-//         doublePush.setData(onSecondRank.getData() << 8);
-//         doublePush &= emptySquares;
-//         attackLeft = notAFilePawn.getData() << 7;
-//         attackRight = notHFilePawn.getData() << 9;
-//         attackLeft &= blackOccupancy.getData();
-//         attackRight &= blackOccupancy.getData();
-//     }
-//     else
-//     {
-//         singlePush.setData(pawns.getData() >> 8);
-//         singlePush &= emptySquares;
-//         onSecondRank.setData((singlePush.getData() & RANK_6));
-//         doublePush.setData(onSecondRank.getData() >> 8);
-//         doublePush &= emptySquares;
-//         attackLeft = notAFilePawn.getData() >> 7;
-//         attackRight = notHFilePawn.getData() >> 9;
-//         attackLeft &= whiteOccupancy.getData();
-//         attackRight &= whiteOccupancy.getData();
-//     }
-    
-//     Rank3 bit mask
-
-//     attacking
-//     A file mask
-//     H file mask
-//     masking current pawns
-//     getting actual attacks
-//     need to & these with enemy occupancy
-    
-
-//     uint64_t attackLeft = notAFilePawns << 7;
-//     uint64_t attackRight = notHFilePawns << 9;
-    
-
-
-
-//     // white pawns operations
-//     // deriving from notes and slides
-//     // each hex bit represents 4 binary bits
-//     // startingPawns doesn't mean currentPawns
-//     uint64_t startingPawns = 0x000000000000FF00;
-//     uint64_t singlePush = startingPawns << 8;
-//     // sets bit to 0 if there's something there
-//     singlePush &= emptySquares;
-//     // Rank3 bit mask
-//     uint64_t RANK_3 = 0x0000000000FF0000;
-//     // if we did a single push and we're on rank 3, we were at starting pos
-//     uint64_t onSecondRank = singlePush & RANK_3;
-//     uint64_t doublePush = onSecondRank << 8;
-//     // if something's there
-//     doublePush &= emptySquares;
-
-//     // attacking
-//     // we need to get a BitBoard of current pawns?
-//     // using starting pawns for now
-//     uint64_t pawns = startingPawns;
-//     // we need some masks to check if left or right edge
-//     // A file mask
-//     uint64_t notAFile = 0xFEFEFEFEFEFEFEFEULL;
-//     // this in binary is:
-//     /*
-//         1111 1110 * 8
-//     */
-//     // H file mask
-//     uint64_t notHFile = 0x7F7F7F7F7F7F7F7FULL;
-//     // this in binary is:
-//     /*
-//         0111 1111 * 8
-//     */
-//     // isn't A on the left? Maybe something with how the nums are parsed onto the board
-//         // yeah, parsed from right to left and projected onto board from left to right
-
-//     // we want to & these file masks with current pawns before shifting for attacking
-//     uint64_t notAFilePawns = pawns & notAFile;
-//     uint64_t notHFilePawns = pawns & notHFile;
-
-//     // these should be the valid attack BitBoards
-//     uint64_t attackLeft = notAFilePawns << 7;
-//     uint64_t attackRight = notHFilePawns << 9;
-    
-//     need to be BitBoards
-//     need to get current pawns somehow
-//         loop through stateString and get all p's and P's?
-//         black needs to do right shifting, so we can differentiate those because of the different p's
-    
-
-//     just doing it for now
-//     similar structure as the others
-//     we're getting all possible moves from every index
-//     Rank3 bit mask
-//     uint64_t RANK_3 = 0x0000000000FF0000;
-//     for(int y=0; y<8; ++y)
-//     {
-//         for(int x=0; x<8; ++x)
-//         {
-//             // shifting by x then shifting by y
-//             // index is y level multiplied by 8 added x
-//             // _knightBitBoards[(y*8)+x] |= (1ULL << ((dx+x) + 8*(dy+y)));
-//             // just do single pushes first
-//             // maybe need if statement?
-//             if(y+1 < 8)
-//             {
-//                 // 1 shifted by 8 * y
-//                 _pawnBitBoards[(y*8)+x] |= 1ULL << (8*y);
-//             }
-//         }
-//     }
-// }
-
-// BitBoardElement Chess::generatePawnBitBoardPerFile(BitBoardElement& singlePush, BitBoardElement& doublePush, BitBoardElement& attackLeft, BitBoardElement& attackRight, int file)
-// {
-//     BitBoardElement defaultbb(0);
-//     return defaultbb;
-//     // given these, generatePawnMoves should've already been called and BitBoards should be valid
-//     uint64_t currentFileMask = 0, leftFileMask = 0, rightFileMask = 0;
-//     // file+=1;
-//     for(int i=0; i<8; ++i)
-//     {
-//         // currentFileMask |= (7ULL << (file-1));
-//         currentFileMask = currentFileMask << 8;
-//         leftFileMask = leftFileMask << 8;
-//         rightFileMask = rightFileMask << 8;
-//         currentFileMask |= (1ULL << (file));
-//         leftFileMask |= (1ULL << (file-1));
-//         rightFileMask |= (1ULL << (file+1));
-//     }
-//     BitBoardElement pushes(currentFileMask & (singlePush.getData() | doublePush.getData())),
-//                     leftCaptures(attackLeft.getData() & leftFileMask),
-//                     rightCaptures(attackRight.getData() & rightFileMask);
-//     BitBoardElement move(pushes.getData() | leftCaptures.getData() | rightCaptures.getData());
-//     return move;
-// }

@@ -251,7 +251,7 @@ public:
 
     // return allmoves, or just store in all moves and clear at beginning?
     // adding params for AI evaluation
-    std::vector<BitMove> generateAllMoves();
+    std::vector<BitMove> generateAllMoves(std::vector<BitMove>& moves);
     bool isSquareAttacked(int square, char attackerColor, const BitBoardElement (&boards)[TOTAL_BITBOARDS]);
     void filterOutIllegalMoves(std::vector<BitMove>& moves);
 
