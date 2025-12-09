@@ -79,6 +79,7 @@ Player *Bit::getOwner()
 void Bit::moveTo(const ImVec2 &point)
 {
 	_destinationPosition = point;
+	setPosition(point);
 	_moving = false;
 	return;
 	// work out the step so we move same step each update

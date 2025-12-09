@@ -229,11 +229,11 @@ public:
 
     // Kings
     void generateKingMoveBitBoard();
-    void generateKingMoves(std::vector<BitMove>& moves, const BitBoardElement kingBoard, const BitBoardElement enemies, const BitBoardElement emptySquares);
+    void generateKingMoves(std::vector<BitMove>& moves, const BitBoardElement kingBoard, const BitBoardElement emptySquares);
 
     // // Knights
     void generateKnightMoveBitBoard();
-    void generateKnightMoves(std::vector<BitMove>& moves, const BitBoardElement knightBoard, const BitBoardElement enemies, const BitBoardElement emptySquares);
+    void generateKnightMoves(std::vector<BitMove>& moves, const BitBoardElement knightBoard, const BitBoardElement friendlies);
 
     // // Pawns
     // void generatePawnMoves(BitBoardElement& singlePush, BitBoardElement& doublePush, BitBoardElement& attackLeft, BitBoardElement& attackRight);
@@ -245,9 +245,9 @@ public:
     void addPawnBitBoardMovesToList(std::vector<BitMove>& moves, const BitBoardElement moveBitBoard, const int shift);
 
     // // Rooks, Bishops, Queens
-    void generateRookMoves(std::vector<BitMove>& moves, const BitBoardElement rookBoard, const BitBoardElement friendlies, const BitBoardElement enemies, const BitBoardElement occupancy);
-    void generateBishopMoves(std::vector<BitMove>& moves, const BitBoardElement bishopBoard, const BitBoardElement friendlies, const BitBoardElement enemies, const BitBoardElement occupancy);
-    void generateQueenMoves(std::vector<BitMove>& moves, const BitBoardElement queenBoard, const BitBoardElement friendlies, const BitBoardElement enemies, const BitBoardElement occupancy);
+    void generateRookMoves(std::vector<BitMove>& moves, const BitBoardElement rookBoard, const BitBoardElement friendlies, const BitBoardElement occupancy);
+    void generateBishopMoves(std::vector<BitMove>& moves, const BitBoardElement bishopBoard, const BitBoardElement friendlies, const BitBoardElement occupancy);
+    void generateQueenMoves(std::vector<BitMove>& moves, const BitBoardElement queenBoard, const BitBoardElement friendlies, const BitBoardElement occupancy);
 
     // return allmoves, or just store in all moves and clear at beginning?
     // adding params for AI evaluation
@@ -320,11 +320,10 @@ private:
 
 
     // Some Masks
-    // uint64_t num = 0x0000000000FF0000;
-    const uint64_t  RANK_2 = 0x000000000000FF00,
+    const uint64_t  RANK_1 = 0x00000000000000FF,
                     RANK_3 = 0x0000000000FF0000,
                     RANK_6 = 0x0000FF0000000000,
-                    RANK_7 = 0x00FF000000000000,
+                    RANK_8 = 0xFF00000000000000,
                     notAFile = 0xFEFEFEFEFEFEFEFEULL,
                     notHFile = 0x7F7F7F7F7F7F7F7FULL;
 
