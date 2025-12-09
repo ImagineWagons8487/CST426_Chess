@@ -719,13 +719,14 @@ void Chess::updateAI()
     {
         totalMat += abs(materialValsMapping[state[i]]);
     }
-    int searchDepth = (totalMat <= 19000) ? 7 : 5;
-    std::cout << "Search Depth: " << searchDepth << std::endl;
+    // int searchDepth = (totalMat <= 19000) ? 7 : 5;
+    // int valCheckQuiet = (totalMat <= 19000) ? move.flags & IsCapture : 0;
+    // std::cout << "Search Depth: " << searchDepth << std::endl;
     for(auto move : newMoves)
     {
         pushMove(move);
 
-        int moveVal = -negamax(searchDepth, color, alpha, beta);
+        int moveVal = -negamax(5, color, alpha, beta, move.flags & IsCapture);
         
         if(moveVal > bestVal)
         {
@@ -777,9 +778,14 @@ int Chess::evaluateBoard(const std::string& state)
 }
 
 // playerColor is either 1 or -1
-int Chess::negamax(int depth, int playerColor, int alpha, int beta) 
+int Chess::negamax(int depth, int playerColor, int alpha, int beta, int isCapture) 
 {
     _countMoves++;
+    // `&` the two vals, since I'm passing in flags, if done corretly, should return a 1 is it is a capture move
+    // this is opposite of behavior I want, if they're both 1, I want to return 0, exor?
+    // since we guarantee it's only iscapture bit or none at all, exor should work.
+    // if((depth <= 0 && (isCapture ^ IsCapture)) || stackPtr >= MAX_DEPTH-1) return evaluateBoard(state);
+        // this doesn't work???
     if(depth <= 0) return evaluateBoard(state);
     
     std::vector<BitMove> newMoves;
@@ -795,7 +801,12 @@ int Chess::negamax(int depth, int playerColor, int alpha, int beta)
     // if(newMoves.size() == 0) return evaluateBoard(state);
     if(newMoves.size() == 0) return 100000000*color;
 
-    
+    // You might want to add quiescence to your engine, if your engine at depth 0 is looking at a capture move 
+    // (so you need to flag that in negamax) then keep going deeper until you are not looking at a capture move. 
+    // Wait until the board is "quiet". That's an easy add that will get rid of a lot of the AI "loopiness".
+
+    // once reaching depth zero (going to return evaluateBoard), check if the most recent move is a capture, maybe pass as well
+    // once not a capture move, then return
 
     int bestVal = -100000000;
 
@@ -803,7 +814,8 @@ int Chess::negamax(int depth, int playerColor, int alpha, int beta)
     {
         // push move
         pushMove(move);
-        bestVal = std::max(bestVal, -negamax(depth-1, -playerColor, -beta, -alpha));
+        // passing in flags&capture so we will only ever have the capture bit set when passing in
+        bestVal = std::max(bestVal, -negamax(depth-1, -playerColor, -beta, -alpha, move.flags & IsCapture));
         // Undo move
         popState();
         // alpha beta cut-off

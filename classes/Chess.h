@@ -329,7 +329,7 @@ private:
 
 
     // AI
-    int         negamax(int depth, int playerColor, int alpha, int beta);
+    int         negamax(int depth, int playerColor, int alpha, int beta, int isCapture);
     int         _countMoves;
 
     GameStateData stateStack[MAX_DEPTH];
