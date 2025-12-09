@@ -229,11 +229,11 @@ public:
 
     // Kings
     void generateKingMoveBitBoard();
-    void generateKingMoves(std::vector<BitMove>& moves, const BitBoardElement kingBoard, const BitBoardElement emptySquares);
+    void generateKingMoves(std::vector<BitMove>& moves, const BitBoardElement kingBoard, const BitBoardElement enemies, const BitBoardElement emptySquares);
 
     // // Knights
     void generateKnightMoveBitBoard();
-    void generateKnightMoves(std::vector<BitMove>& moves, const BitBoardElement knightBoard, const BitBoardElement emptySquares);
+    void generateKnightMoves(std::vector<BitMove>& moves, const BitBoardElement knightBoard, const BitBoardElement enemies, const BitBoardElement emptySquares);
 
     // // Pawns
     // void generatePawnMoves(BitBoardElement& singlePush, BitBoardElement& doublePush, BitBoardElement& attackLeft, BitBoardElement& attackRight);
@@ -245,9 +245,9 @@ public:
     void addPawnBitBoardMovesToList(std::vector<BitMove>& moves, const BitBoardElement moveBitBoard, const int shift);
 
     // // Rooks, Bishops, Queens
-    void generateRookMoves(std::vector<BitMove>& moves, const BitBoardElement rookBoard, BitBoardElement friendlies, const BitBoardElement occupancy);
-    void generateBishopMoves(std::vector<BitMove>& moves, const BitBoardElement bishopBoard, BitBoardElement friendlies, const BitBoardElement occupancy);
-    void generateQueenMoves(std::vector<BitMove>& moves, const BitBoardElement queenBoard, BitBoardElement friendlies, const BitBoardElement occupancy);
+    void generateRookMoves(std::vector<BitMove>& moves, const BitBoardElement rookBoard, const BitBoardElement friendlies, const BitBoardElement enemies, const BitBoardElement occupancy);
+    void generateBishopMoves(std::vector<BitMove>& moves, const BitBoardElement bishopBoard, const BitBoardElement friendlies, const BitBoardElement enemies, const BitBoardElement occupancy);
+    void generateQueenMoves(std::vector<BitMove>& moves, const BitBoardElement queenBoard, const BitBoardElement friendlies, const BitBoardElement enemies, const BitBoardElement occupancy);
 
     // return allmoves, or just store in all moves and clear at beginning?
     // adding params for AI evaluation
@@ -264,7 +264,19 @@ public:
         return isAIEnabled;
     };
 
+    // Tournament support methods
+    void setBoardFromFEN(const std::string& fen);
+    BitMove getLastAIMove() const { return _lastAIMove; }
+    std::string getFEN() const;
+
+    // Get current player color (WHITE=1, BLACK=-1)
+    int getCurrentPlayerColor() const { return _currentPlayer; }
+
+    
 private:
+    // you can make this variable private, it's just grouped with the public methods for convenience
+    BitMove _lastAIMove;  // Stores the last move calculated by AI (for tournament)
+    
     bool isAIEnabled = true;
 
     Bit* PieceForPlayer(const int playerNumber, ChessPiece piece);

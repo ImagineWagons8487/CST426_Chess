@@ -216,6 +216,10 @@ void Chess::bitMovedFromTo(Bit &bit, BitHolder &src, BitHolder& dst)
     // generateAllMoves might also set _allMoves to the vector
     _allMoves.clear();
     generateAllMoves(_allMoves);
+    if(_allMoves.size() == 0)
+    {
+        std::cout << "CheckMate!\n";
+    }
     // clearBoardHighlights()
     clearBoardHighlights();
     // end turn
@@ -322,7 +326,7 @@ void Chess::setStateString(const std::string &s)
 
 // Generate actual move objects from a BitBoard
 // emptySquares is ~occupancy, bits that represent emptySquares are set
-void Chess::generateKnightMoves(std::vector<BitMove>& moves, const BitBoardElement knightBoard, const BitBoardElement occupancy) {
+void Chess::generateKnightMoves(std::vector<BitMove>& moves, const BitBoardElement knightBoard, const BitBoardElement enemies, const BitBoardElement occupancy) {
     // check if knightVoard is zero
         // return immediately
     // branching behavior, but it cuts off processing, so it's better?
@@ -332,7 +336,8 @@ void Chess::generateKnightMoves(std::vector<BitMove>& moves, const BitBoardEleme
         BitBoardElement moveBitBoard = BitBoardElement(KnightAttacks[fromSquare] & ~occupancy.getData());
         // Efficiently iterate through only the set bits
         moveBitBoard.forEachBit([&](int toSquare) {
-           moves.emplace_back(fromSquare, toSquare, Knight);
+            enemies.getData() & 1ULL << toSquare ? moves.emplace_back(fromSquare, toSquare, Knight, 0x02) : moves.emplace_back(fromSquare, toSquare, Knight);
+        // moves.emplace_back(fromSquare, toSquare, Knight);
         });
     });
 }
@@ -366,13 +371,14 @@ BitBoardElement generateKnightMoveBitBoard(int square)
     return bb;
 }
 
-void Chess::generateKingMoves(std::vector<BitMove>& moves, const BitBoardElement kingBoard, const BitBoardElement friendlies)
+void Chess::generateKingMoves(std::vector<BitMove>& moves, const BitBoardElement kingBoard, const BitBoardElement enemies, const BitBoardElement friendlies)
 {
     kingBoard.forEachBit([&](int fromSquare) {
         BitBoardElement moveBitBoard = BitBoardElement(KingAttacks[fromSquare] & ~friendlies.getData());
         // Efficiently iterate through only the set bits
         moveBitBoard.forEachBit([&](int toSquare) {
-           moves.emplace_back(fromSquare, toSquare, King);
+            enemies.getData() & 1ULL << toSquare ? moves.emplace_back(fromSquare, toSquare, King, 0x02) : moves.emplace_back(fromSquare, toSquare, King);
+        //    moves.emplace_back(fromSquare, toSquare, King);
         });
     });
 }
@@ -454,64 +460,51 @@ void Chess::addPawnBitBoardMovesToList(std::vector<BitMove>& moves, const BitBoa
         return;
     // this will add the BitBoard moves to the list
     moveBitBoard.forEachBit([&](int toSquareIdx){
-        moves.emplace_back(toSquareIdx-shift, toSquareIdx, Pawn);
+        moveBitBoard.getData() & 1ULL << toSquareIdx ? moves.emplace_back(toSquareIdx-shift, toSquareIdx, Pawn, 0x02) : moves.emplace_back(toSquareIdx-shift, toSquareIdx, Pawn);
+        // moves.emplace_back(toSquareIdx-shift, toSquareIdx, Pawn);
     });
 }
 
-void Chess::generateRookMoves(std::vector<BitMove>& moves, const BitBoardElement rookBoard, const BitBoardElement friendlies, const BitBoardElement occupancy)
+void Chess::generateRookMoves(std::vector<BitMove>& moves, const BitBoardElement rookBoard, const BitBoardElement friendlies, const BitBoardElement enemies, const BitBoardElement occupancy)
 {
-
-    // magic is brute forced magic
-    // index = ((occupancy & mask) * magic) >> shift[sq]
-    // moveBitBoard = rmagic[sq][index]
-
-    // sq == square?
 
     rookBoard.forEachBit([&](int fromSquare){
         uint64_t index = (uint64_t)((occupancy.getData() & RMasks[fromSquare]) * RMagic[fromSquare]) >> (uint64_t)RShifts[fromSquare];
         BitBoardElement moveBitBoard(RAttacks[fromSquare][index] & ~friendlies.getData());
         moveBitBoard.forEachBit([&](int toSquare){
-            moves.emplace_back(fromSquare, toSquare, Rook);
+            enemies.getData() & 1ULL << toSquare ? moves.emplace_back(fromSquare, toSquare, Rook, 0x02) : moves.emplace_back(fromSquare, toSquare, Rook);
+            // moves.emplace_back(fromSquare, toSquare, Rook);
         });
     });
-    // int index = ((~emptySquares.getData() & RMasks[36]) * RMagic[36]) >> (uint64_t)RShifts[36];
-    // BitBoard moveBitBoard(RAttacks[36][index] & ~friendlies.getData());
-    // BitBoard bb((ratt(36, ~emptySquares.getData()) & _tableBitBoards[BLACK_OCCUPANCY].getData()) | (RMasks[36] & ~_tableBitBoards[ALL_OCCUPANCY].getData()));
-    
-    // this seems to work, just pass in friendlies
-    // BitBoard bb2(ratt(16, _tableBitBoards[ALL_OCCUPANCY].getData()) & ~_tableBitBoards[WHITE_OCCUPANCY].getData());
-    
-    
-    // BitBoard bb3(RAttacks[16][32]);
-
-    // BitBoard bb2 = ;
-    // std::cout << "magic";
-    // moveBitBoard.printBitBoard();
 }
 
-void Chess::generateBishopMoves(std::vector<BitMove>& moves, const BitBoardElement bishopBoard, const BitBoardElement friendlies, const BitBoardElement occupancy)
+void Chess::generateBishopMoves(std::vector<BitMove>& moves, const BitBoardElement bishopBoard, const BitBoardElement friendlies, const BitBoardElement enemies, const BitBoardElement occupancy)
 {
     bishopBoard.forEachBit([&](int fromSquare){
         uint64_t index = (uint64_t)((occupancy.getData() & BMasks[fromSquare]) * BMagic[fromSquare]) >> (uint64_t)BShifts[fromSquare];
         BitBoardElement moveBitBoard(BAttacks[fromSquare][index] & ~friendlies.getData());
         moveBitBoard.forEachBit([&](int toSquare){
-            moves.emplace_back(fromSquare, toSquare, Bishop);
+            enemies.getData() & 1ULL << toSquare ? moves.emplace_back(fromSquare, toSquare, Bishop, 0x02) : moves.emplace_back(fromSquare, toSquare, Bishop);
+            // moves.emplace_back(fromSquare, toSquare, Bishop);
         });
     });
 }
 
-void Chess::generateQueenMoves(std::vector<BitMove>& moves, const BitBoardElement queenBoard, const BitBoardElement friendlies, const BitBoardElement occupancy)
+void Chess::generateQueenMoves(std::vector<BitMove>& moves, const BitBoardElement queenBoard, const BitBoardElement friendlies, const BitBoardElement enemies, const BitBoardElement occupancy)
 {
     queenBoard.forEachBit([&](int fromSquare){
         uint64_t rIndex = (uint64_t)((occupancy.getData() & RMasks[fromSquare]) * RMagic[fromSquare]) >> (uint64_t)RShifts[fromSquare];
         BitBoardElement rMoveBitBoard(RAttacks[fromSquare][rIndex] & ~friendlies.getData());
         rMoveBitBoard.forEachBit([&](int toSquare){
-            moves.emplace_back(fromSquare, toSquare, Queen);
+            enemies.getData() & 1ULL << toSquare ? moves.emplace_back(fromSquare, toSquare, Queen, 0x02) : moves.emplace_back(fromSquare, toSquare, Queen);
         });
         uint64_t bIndex = (uint64_t)((occupancy.getData() & BMasks[fromSquare]) * BMagic[fromSquare]) >> (uint64_t)BShifts[fromSquare];
         BitBoardElement bMoveBitBoard(BAttacks[fromSquare][bIndex] & ~friendlies.getData());
         bMoveBitBoard.forEachBit([&](int toSquare){
-            moves.emplace_back(fromSquare, toSquare, Queen);
+            enemies.getData() & 1ULL << toSquare ? moves.emplace_back(fromSquare, toSquare, Queen, 0x02) : moves.emplace_back(fromSquare, toSquare, Queen);
+            // get access to enemies, if toSquare is an enemy, add cap flag
+            // _grid->getSquareByIndex(toSquare)->bit() ? moves.emplace_back(fromSquare, toSquare, Queen, 0x02) : moves.emplace_back(fromSquare, toSquare, Queen);
+            // moves.emplace_back(fromSquare, toSquare, Queen);
         });
     });
     
@@ -547,12 +540,12 @@ std::vector<BitMove> Chess::generateAllMoves(std::vector<BitMove>& moves)
     int oppBitIndex = color == WHITE ? BLACK_PAWN : WHITE_PAWN;
 
     // i need to isolate all the specific pieces and get the BitBoard for that index of that piece
-    generateQueenMoves(moves, _tableBitBoards[WHITE_QUEEN + bitIndex], _tableBitBoards[WHITE_OCCUPANCY + bitIndex], _tableBitBoards[ALL_OCCUPANCY]);
-    generateRookMoves(moves, _tableBitBoards[WHITE_ROOK + bitIndex], _tableBitBoards[WHITE_OCCUPANCY + bitIndex], _tableBitBoards[ALL_OCCUPANCY]);
-    generateKnightMoves(moves, _tableBitBoards[WHITE_KNIGHT + bitIndex], _tableBitBoards[WHITE_OCCUPANCY + bitIndex]);
-    generateBishopMoves(moves, _tableBitBoards[WHITE_BISHOP + bitIndex], _tableBitBoards[WHITE_OCCUPANCY + bitIndex], _tableBitBoards[ALL_OCCUPANCY]);
+    generateQueenMoves(moves, _tableBitBoards[WHITE_QUEEN + bitIndex], _tableBitBoards[WHITE_OCCUPANCY + bitIndex], _tableBitBoards[WHITE_OCCUPANCY + oppBitIndex], _tableBitBoards[ALL_OCCUPANCY]);
+    generateRookMoves(moves, _tableBitBoards[WHITE_ROOK + bitIndex], _tableBitBoards[WHITE_OCCUPANCY + bitIndex], _tableBitBoards[WHITE_OCCUPANCY + oppBitIndex], _tableBitBoards[ALL_OCCUPANCY]);
+    generateKnightMoves(moves, _tableBitBoards[WHITE_KNIGHT + bitIndex], _tableBitBoards[WHITE_OCCUPANCY + oppBitIndex], _tableBitBoards[WHITE_OCCUPANCY + bitIndex]);
+    generateBishopMoves(moves, _tableBitBoards[WHITE_BISHOP + bitIndex], _tableBitBoards[WHITE_OCCUPANCY + bitIndex],_tableBitBoards[WHITE_OCCUPANCY + oppBitIndex],  _tableBitBoards[ALL_OCCUPANCY]);
     generatePawnMoveList(moves, _tableBitBoards[WHITE_PAWN + bitIndex], _tableBitBoards[EMPTY_SQUARES], _tableBitBoards[WHITE_OCCUPANCY + oppBitIndex], color);
-    generateKingMoves(moves, _tableBitBoards[WHITE_KING + bitIndex], _tableBitBoards[WHITE_OCCUPANCY + bitIndex]);
+    generateKingMoves(moves, _tableBitBoards[WHITE_KING + bitIndex], _tableBitBoards[WHITE_OCCUPANCY + oppBitIndex], _tableBitBoards[WHITE_OCCUPANCY + bitIndex]);
     
     filterOutIllegalMoves(moves);
 
@@ -676,6 +669,7 @@ void Chess::updateAI()
     {
         return;
     }
+    _lastAIMove = BitMove();  // Reset last AI move
     // get current time
     const auto searchStart = std::chrono::steady_clock::now();
     _countMoves = 0;
@@ -705,7 +699,7 @@ void Chess::updateAI()
     {
         pushMove(move);
 
-        int moveVal = -negamax(6, color, alpha, beta);
+        int moveVal = -negamax(5, color, alpha, beta);
         
         if(moveVal > bestVal)
         {
@@ -731,7 +725,7 @@ void Chess::updateAI()
         Bit* bit = src.bit();
         dst.dropBitAtPoint(bit, ImVec2(0, 0));
         src.setBit(nullptr);
-        
+        _lastAIMove = bestMove;
         bitMovedFromTo(*bit, src, dst);
     }
  
@@ -793,3 +787,113 @@ int Chess::negamax(int depth, int playerColor, int alpha, int beta)
     // we can just do based off capture
     // We can also try "Most Valuable Victim minues Least Valuable Attacker"
     // This allows for us to prune stuff more which means less moves checked
+
+// Tournament Code
+// Tournament support: Set board from FEN and reinitialize game state for AI
+void Chess::setBoardFromFEN(const std::string& fen) {
+    // Parse FEN string - can be full FEN or just piece placement
+    std::string piecePlacement = fen;
+    std::string activeColor = "w";
+    std::string castling = "KQkq";
+    std::string enPassant = "-";
+
+    // Check if this is a full FEN string (has spaces)
+    size_t spacePos = fen.find(' ');
+    if (spacePos != std::string::npos) {
+        // Parse full FEN
+        std::istringstream fenStream(fen);
+        fenStream >> piecePlacement >> activeColor >> castling >> enPassant;
+    }
+
+    // Set visual board from piece placement
+    FENtoBoard(piecePlacement);
+
+    // Determine current player from FEN
+    _currentPlayer = (activeColor == "w" || activeColor == "W") ? WHITE : BLACK;
+
+    // Reinitialize game state so AI sees correct board
+
+    init(stateString().c_str(), _currentPlayer);
+    // memcpy(state, stateString().c_str(), 64);
+    // state = stateString().c_str();
+
+
+    // TODO: Parse castling rights and en passant from FEN for more accurate state
+    // For now, the basic state is sufficient for AI to calculate moves
+
+    // Generate legal moves for the new position
+    // _moves = _gamestate.generateAllMoves();
+    generateAllMoves(_allMoves);
+
+    std::cout << "[Tournament] Board set from FEN. Player: "
+              << (_currentPlayer == WHITE ? "White" : "Black")
+              << ", Legal moves: " << _allMoves.size() << std::endl;
+}
+
+// Tournament support: Generate FEN string from current board
+std::string Chess::getFEN() const {
+    std::string fen;
+    fen.reserve(90);
+
+    // Piece placement (from rank 8 to rank 1)
+    for (int rank = 7; rank >= 0; --rank) {
+        int emptyCount = 0;
+        for (int file = 0; file < 8; ++file) {
+            char piece = pieceNotation(file, rank);
+            if (piece == '0') {
+                emptyCount++;
+            } else {
+                if (emptyCount > 0) {
+                    fen += std::to_string(emptyCount);
+                    emptyCount = 0;
+                }
+                fen += piece;
+            }
+        }
+        if (emptyCount > 0) {
+            fen += std::to_string(emptyCount);
+        }
+        if (rank > 0) {
+            fen += '/';
+        }
+    }
+
+    // Active color
+    fen += ' ';
+    fen += (_currentPlayer == WHITE) ? 'w' : 'b';
+
+    // Castling availability (simplified - always report based on piece positions)
+    fen += ' ';
+    std::string castling;
+
+    // Check if white can castle (king on e1, rooks on a1/h1)
+    char e1 = pieceNotation(4, 0);
+    char a1 = pieceNotation(0, 0);
+    char h1 = pieceNotation(7, 0);
+    if (e1 == 'K') {
+        if (h1 == 'R') castling += 'K';
+        if (a1 == 'R') castling += 'Q';
+    }
+
+    // Check if black can castle (king on e8, rooks on a8/h8)
+    char e8 = pieceNotation(4, 7);
+    char a8 = pieceNotation(0, 7);
+    char h8 = pieceNotation(7, 7);
+    if (e8 == 'k') {
+        if (h8 == 'r') castling += 'k';
+        if (a8 == 'r') castling += 'q';
+    }
+
+    fen += castling.empty() ? "-" : castling;
+
+    // En passant target square (simplified - report as '-')
+    fen += " -";
+
+    // Halfmove clock (simplified)
+    fen += " 0";
+
+    // Fullmove number (simplified)
+    fen += " 1";
+
+    return fen;
+}
