@@ -80,8 +80,8 @@ namespace ClassGame {
                     if (ImGui::Button("Start Online Tournament")) {
                         game = new Chess();
                         game->setUpBoard();
-                        client = new TournamentClient((Chess *)game, "Moriarty");       // THIS SHOULD BE YOUR BOT NAME
-                        client->connect("127.0.0.1", 12345);
+                        client = new TournamentClient((Chess *)game, "WagonBot");       // THIS SHOULD BE YOUR BOT NAME
+                        client->connect("13.223.80.180", 5000);
                     }
                 } else {
                     ImGui::Text("Current Player Number: %d", game->getCurrentPlayer()->playerNumber());

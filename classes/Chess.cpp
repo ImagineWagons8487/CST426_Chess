@@ -124,7 +124,7 @@ void Chess::setUpBoard()
     init(initialStateString().c_str(), WHITE);
     if(gameHasAI())
     {
-        setAIPlayer(0);
+        setAIPlayer(1);
     }
 
     startGame();
@@ -726,14 +726,13 @@ void Chess::updateAI()
     {
         pushMove(move);
 
-        int moveVal = -negamax(5, color, alpha, beta, move.flags & IsCapture);
+        int moveVal = -negamax(4, color, alpha, beta, move.flags & IsCapture);
         
         if(moveVal > bestVal)
         {
             bestMove = move;
             bestVal = moveVal;
         }
-
         
         popState();
     }
@@ -784,7 +783,7 @@ int Chess::negamax(int depth, int playerColor, int alpha, int beta, int isCaptur
     // `&` the two vals, since I'm passing in flags, if done corretly, should return a 1 is it is a capture move
     // this is opposite of behavior I want, if they're both 1, I want to return 0, exor?
     // since we guarantee it's only iscapture bit or none at all, exor should work.
-    // if((depth <= 0 && (isCapture ^ IsCapture)) || stackPtr >= MAX_DEPTH-1) return evaluateBoard(state);
+    // if((depth <= 0 && isCapture == 0) || stackPtr >= 7) return evaluateBoard(state);
         // this doesn't work???
     if(depth <= 0) return evaluateBoard(state);
     
@@ -839,6 +838,12 @@ int Chess::negamax(int depth, int playerColor, int alpha, int beta, int isCaptur
 // Tournament Code
 // Tournament support: Set board from FEN and reinitialize game state for AI
 void Chess::setBoardFromFEN(const std::string& fen) {
+    // iterate through grid destroy bit
+    _grid->forEachSquare([&](ChessSquare* square, int x, int y)
+    {
+        square->destroyBit();
+    });
+
     // Parse FEN string - can be full FEN or just piece placement
     std::string piecePlacement = fen;
     std::string activeColor = "w";
@@ -858,6 +863,7 @@ void Chess::setBoardFromFEN(const std::string& fen) {
 
     // Determine current player from FEN
     color = (activeColor == "w" || activeColor == "W") ? WHITE : BLACK;
+    setAIPlayer((activeColor == "w" || activeColor == "W") ? 0 : 1);
 
     // Reinitialize game state so AI sees correct board
 
